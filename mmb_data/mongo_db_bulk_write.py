@@ -1,5 +1,6 @@
 
 import logging
+import sys
 
 from pymongo import InsertOne, DeleteOne, UpdateOne,UpdateMany
 from pymongo.errors import BulkWriteError
@@ -26,7 +27,7 @@ class MongoDBBulkWrite():
         self.removed = 0
         self.upserted = 0
         self.modified = 0
-        self.insereted = 0
+        self.inserted = 0
     
     def clean(self):
         self.data = []
@@ -37,7 +38,7 @@ class MongoDBBulkWrite():
             {
             'id': id,
             'val': val,
-            'serId': ser_id
+            'ser_id': ser_id
             }
         )
         self.ibuff += 1
@@ -76,18 +77,18 @@ class MongoDBBulkWrite():
                                 bulk.append(UpdateMany(item['id'], item['val']))
                             else:
                                 bulk.append(UpdateOne(item['id'], item['val']))
-                            if item['ser_id']:
-                                last_id = item['ser_id']
-                            else:
-                                last_id = item['id']['_id'];
+                        if item['ser_id']:
+                            last_id = item['ser_id']
+                        else:
+                            last_id = item['id']['_id'];
                     try:
-                        hres = self.collection.bulk_write(bulk)
+                        hres = self.collection.bulk_write(bulk, ordered=False)
                     except BulkWriteError as bwe:
-                        logging.error(bew.details)
+                        logging.error(bwe.details)
                         sys.exit()
 
                     self.total += self.ibuff
-                    log = 'Committing {:7} ops. ({:8} to {:15}:'.format(
+                    log = 'Committing {:7} ops. ({:8}) to {:15}:'.format(
                         self.ibuff, self.total, self.collection.name
                     )
                     log += '{:7} matched, {:7} removed, {:7} upserted, {:7} modified'.format(

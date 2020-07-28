@@ -12,12 +12,12 @@ from gridfs import GridFS
 class Mongo_db():
     def __init__(self, host, db, read_only, auth=True, wconcern=1):
         self.credentials = {
-            'ROUser' : 'readAny',
-            'ROPwd' : 'slmdbrany2019',
-            'RWUser' : 'dataLoader',
-            'RWPwd' : 'slmdbwany2019'
+            'ROUser' : 'fp_read',
+            'ROPwd' : 'slmdbrany2020',
+            'RWUser' : 'fp_rw',
+            'RWPwd' : 'slmdbload2020'
         }
-        self.authDB = 'admin'
+        self.authDB = 'FlexPortal'
         self.host = host
         self.db = db
         self.read_only = read_only

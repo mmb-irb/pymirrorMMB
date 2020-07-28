@@ -15,7 +15,7 @@ from mmb_data.mongo_db_connect import Mongo_db
 from mmb_data.mongo_db_bulk_write import CTS, MongoDBBulkWrite
 
 
-BATCH_SIZE = 50000
+BATCH_SIZE = 100000
 
 def process_fasta(header, seq):
 
@@ -31,8 +31,9 @@ def process_fasta(header, seq):
         if data[i].find('=') == -1:
             header_data[prev_field].append(data[i])
         else:
-            label, val = data[i].split('=')
-            prev_field = label
+            label, val = data[i].split('=', 1)
+            if label:
+                prev_field = label
             header_data[prev_field] = [val]
     
     header_data = {k: ' '.join(header_data[k]) for k in header_data}
@@ -90,7 +91,8 @@ cmd = argparse.ArgumentParser(
 )
 
 cmd.add_argument('--tupd', dest='tupd', action='store_true', required=False, help='New files only')
-cmd.add_argument('--inic', dest='inic', required=False,help='Initial id to process')
+cmd.add_argument('--inic', dest='inic', required=False, help='Initial id to process')
+cmd.add_argument('--skip_ids', dest='skip', type=int, required=False, default=0, help='Skip records')
 cmd.add_argument('--ini_line', dest='ini_line', type=int, default=0, required=False, help='Initial line to process')
 cmd.add_argument('--fin_line', dest='fin_line', type=int, default=0, required=False, help='Final line ot process')
 cmd.add_argument('-v', dest='verb', action='store_true', required=False, help='Additional logging')
@@ -98,7 +100,7 @@ cmd.add_argument('--debug', dest='debug', action='store_true', required=False, h
 cmd.add_argument('files', nargs=argparse.REMAINDER, help="Files to process (FASTA(.gz))")
 args = cmd.parse_args()
 
-db_lnk = Mongo_db('localhost', 'FlexPortal', True, False)
+db_lnk = Mongo_db('localhost', 'FlexPortal', False, True)
 db_cols = db_lnk.get_collections(["headers", "sequences", "sources","fileStamps"])
 
 logging.basicConfig(format='[%(asctime)s] %(levelname)s %(message)s', datefmt='%Y-%m-%d|%H:%M:%S')
@@ -119,7 +121,19 @@ for sc in db_cols['sources'].find():
     
 logging.info('{} sources loaded'.format(len(sources)))
 
-ntot = db_cols['headers'].count_documents({})
+ntot = db_cols['headers'].estimated_document_count()
+
+logging.info('Found {} documents'.format(ntot))
+
+
+if args.skip:
+    logging.info('Skipping {} records'.format(args.skip))
+if args.inic:
+    logging.info('Skipping until {}'.format(args.inic))
+if args.ini_line:
+    logging.info('Starting at {} line'.format(args.ini_line))
+if args.fin_line:
+    logging.info('Stopping at {} line'.format(args.fin_line))
 
 logging.info('Reading input files...')
 
@@ -151,14 +165,16 @@ for file in args.files:
         if line.find('>') == 0:
             nids  += 1
             in_process = in_process or\
-                args.inic == last_id or (nline >= args.ini_line)
+                args.inic == last_id or\
+                (args.ini_line and nline >= args.ini_line) or\
+                (args.skip and nids > args.skip)
             if args.fin_line and in_process:
                 in_process = (nline <= args.fin_line)
             if header and in_process:
                 process_fasta(header, seq)
             header = line
             seq = ''
-            print_progress('Input ids', nids, ntot, BATCH_SIZE)
+            print_progress('Input ids', nids, ntot, BATCH_SIZE/2)
         else:
             seq += line
         
