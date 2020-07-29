@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 #encoding: UTF-8
 
 # To change this license header, choose License Headers in Project Properties.
