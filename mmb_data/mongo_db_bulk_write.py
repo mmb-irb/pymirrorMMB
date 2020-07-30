@@ -79,7 +79,7 @@ class MongoDBBulkWrite():
                                 bulk.append(UpdateOne(item['id'], item['val']))
                         if item['ser_id']:
                             last_id = item['ser_id']
-                        else:
+                        elif '_id' in item['id']:
                             last_id = item['id']['_id'];
                     try:
                         hres = self.collection.bulk_write(bulk, ordered=False)

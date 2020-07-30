@@ -8,7 +8,8 @@ import re
 from mmb_data.mongo_db_connect import Mongo_db
 from mmb_data.mongo_db_bulk_write import CTS, MongoDBBulkWrite
 
-BATCH_SIZE = 1000
+BATCH_SIZE = 100000
+AUTH = True
 
 
 cmd = argparse.ArgumentParser(
@@ -23,7 +24,7 @@ cmd.add_argument('--debug', dest='debug', action='store_true', required=False, h
 cmd.add_argument('files', nargs=argparse.REMAINDER, help="Files to process (FASTA(.gz))")
 args = cmd.parse_args()
 
-db_lnk = Mongo_db('localhost', 'FlexPortal', False, False)
+db_lnk = Mongo_db('localhost', 'FlexPortal', False, AUTH)
 db_cols = db_lnk.get_collections(["headers", "sequences", "Annotation", "fileStamps"])
 
 logging.basicConfig(format='[%(asctime)s] %(levelname)s %(message)s', datefmt='%Y-%m-%d|%H:%M:%S')
@@ -87,11 +88,6 @@ for file in args.files:
                 buff.append({'_id': id},{})
                 buff.commit_data_if_full()
             
-#            for ref in 'UniRef100','UniRef90','UniRef50':
-#                for idc in  db_cols['headers'].find({'dbxref.'+ ref : id}):
-#                    idref = idc['_id']
-#                    headUpdBuff.append({'_id':idref},{'$pullAll': {'dbxref.'+ref: [id]}})
-            
             for ref in 'UniRef100','UniRef90','UniRef50':
                 headUpdBuff.append(
                     {'dbxref.'+ref: id},
@@ -104,7 +100,7 @@ for file in args.files:
         buff.commit_any_data()
     headUpdBuff.commit_any_data(True)
 
-    db_cols['fileStamps'].update_one({'_id':file},{'$set':{'ts':tstamp}})
+    db_cols['fileStamps'].update_one({'_id':file},{'$set':{'ts':tstamp}}, upsert=True)
 
 logging.info('Mark deleted Done')
 
