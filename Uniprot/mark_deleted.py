@@ -90,11 +90,6 @@ for file in args.files:
                 buff.append({'_id': id},{})
                 buff.commit_data_if_full()
             
-#            for ref in 'UniRef100','UniRef90','UniRef50':
-#                for idc in  db_cols['headers'].find({'dbxref.'+ ref : id}):
-#                    idref = idc['_id']
-#                    headUpdBuff.append({'_id':idref},{'$pullAll': {'dbxref.'+ref: [id]}})
-            
             for ref in 'UniRef100','UniRef90','UniRef50':
                 headUpdBuff.append(
                     {'dbxref.'+ref: id},
@@ -107,7 +102,7 @@ for file in args.files:
         buff.commit_any_data()
     headUpdBuff.commit_any_data(True)
 
-    db_cols['fileStamps'].update_one({'_id':file},{'$set':{'ts':tstamp}})
+    db_cols['fileStamps'].update_one({'_id':file},{'$set':{'ts':tstamp}}, upsert=True)
 
 logging.info('Mark deleted Done')
 

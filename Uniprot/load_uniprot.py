@@ -16,6 +16,7 @@ from mmb_data.mongo_db_bulk_write import CTS, MongoDBBulkWrite
 
 
 BATCH_SIZE = 100000
+AUTH = True
 
 def process_fasta(header, seq):
 
@@ -100,7 +101,7 @@ cmd.add_argument('--debug', dest='debug', action='store_true', required=False, h
 cmd.add_argument('files', nargs=argparse.REMAINDER, help="Files to process (FASTA(.gz))")
 args = cmd.parse_args()
 
-db_lnk = Mongo_db('localhost', 'FlexPortal', False, True)
+db_lnk = Mongo_db('localhost', 'FlexPortal', False, AUTH)
 db_cols = db_lnk.get_collections(["headers", "sequences", "sources","fileStamps"])
 
 logging.basicConfig(format='[%(asctime)s] %(levelname)s %(message)s', datefmt='%Y-%m-%d|%H:%M:%S')
@@ -184,7 +185,7 @@ for file in args.files:
     headBuff.commit_any_data()
     seqBuff.commit_any_data()
     
-    db_cols['fileStamps'].update_one({'_id':file},{'$set':{'ts':tstamp}})
+    db_cols['fileStamps'].update_one({'_id':file},{'$set':{'ts':tstamp}}, upsert=True)
     
 logging.info('loadUniprot Done')
 
