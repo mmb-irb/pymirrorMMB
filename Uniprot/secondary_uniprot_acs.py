@@ -7,6 +7,7 @@ import re
 
 from mmb_data.mongo_db_connect import Mongo_db
 from mmb_data.mongo_db_bulk_write import CTS, MongoDBBulkWrite
+from mmb_data.file_mgr import FileMgr
 
 BATCH_SIZE = 100000
 AUTH = True
@@ -47,60 +48,54 @@ if args.fin_line:
 
 in_process = False
 last_id = '-1'
-nline = 0
-nids = 0
 
 for file in args.files:
-    logging.info('Reading ' + file)
-    file_stat = os.stat(file)
-    tstamp =  int(file_stat.st_ctime)
-    logging.info('File time stamp: {}'.format(tstamp))
-    stored_tstamp = db_cols['fileStamps'].find_one({'_id':file})
-    if args.tupd and stored_tstamp and (stored_tstamp['ts'] <= tstamp):
+    logging.info('Processing ' + file)
+
+    f_mgr = FileMgr(file, args.ini_line, args.fin_line)
+    
+    if args.tupd and not f_mgr.check_stamp(db_cols['fileStamps']):
         logging.info("File not new, skipping")
         continue
-    if file.find('.gz') != -1:
-        fh_in = gzip.open(file ,'r')
-    else:
-        fh_in = open(file ,'r')
     
-    header_lines = True
-    for line in fh_in:
-        header_lines = header_lines and (line.find('_____') == -1)
-        if header_lines:
-            continue
+    f_mgr.open_file()
+    
+    f_mgr.skip_lines_to('_____')
+    
+    f_mgr.skip_lines_to_ini()
+
+    for line in f_mgr:
         if line.find('_____') != -1:
             continue
-        line = line.rstrip()
-        nline += 1
-        if args.fin_line and nline > args.fin_line:
-            break
-        if nline > args.ini_line:
-            sec_ac, ac_num = re.split('\W+', line)
-            headBuff.append(
-                {'_id':sec_ac},
-                {'$set': 
-                    {
-                        'isSecondary' : 1,
-                        'refAc' : ac_num,
-                        'stamp' : tstamp
-                    }
+
+        sec_ac, ac_num = re.split('\W+', line)
+        
+        headBuff.append(
+            {'_id':sec_ac},
+            {'$set': 
+                {
+                    'isSecondary' : 1,
+                    'refAc' : ac_num,
+                    'stamp' : f_mgr.tstamp
                 }
-            )
+            }
+        )
             
-            headBuff.append(
-                {'_id':ac_num},
-                {'$addToSet' : {'secAcs': sec_ac}}
-            )
-            seqBuff.append({'_id':sec_ac},{});
+        headBuff.append(
+            {'_id':ac_num},
+            {'$addToSet' : {'secAcs': sec_ac}}
+        )
+        seqBuff.append({'_id':sec_ac},{});
             
-            headBuff.commit_data_if_full()
-            seqBuff.commit_data_if_full()
+        headBuff.commit_data_if_full()
+        seqBuff.commit_data_if_full()
+        
+    del f_mgr
 
     headBuff.commit_any_data()
     seqBuff.commit_any_data()
 
-    db_cols['fileStamps'].update_one({'_id':file},{'$set':{'ts':tstamp}}, upsert=True)
+    db_cols['fileStamps'].update_one({'_id':file},{'$set':{'ts':f_mgr.tstamp}}, upsert=True)
 
 logging.info('load Secondaries Done')
 

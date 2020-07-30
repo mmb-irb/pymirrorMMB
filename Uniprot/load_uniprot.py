@@ -13,7 +13,8 @@ import sys
 
 from mmb_data.mongo_db_connect import Mongo_db
 from mmb_data.mongo_db_bulk_write import CTS, MongoDBBulkWrite
-
+from mmb_data.file_mgr import FileMgr
+import mmb_data.utils as ut
 
 BATCH_SIZE = 100000
 AUTH = True
@@ -80,12 +81,6 @@ def process_fasta(header, seq):
     headBuff.commit_data_if_full()
     seqBuff.commit_data_if_full()
     
-    
-def print_progress(prefix, nids, ntot, inc):
-    ntot = max(1, ntot)
-    if nids%inc == 0:
-        logging.info("{} {:8}/{:8} {:5.1f}%".format(prefix, nids, ntot, (nids*100./ntot)))
-
 
 cmd = argparse.ArgumentParser(
     description='Uniprot Fasta loader'
@@ -126,66 +121,68 @@ ntot = db_cols['headers'].estimated_document_count()
 
 logging.info('Found {} documents'.format(ntot))
 
-
 if args.skip:
     logging.info('Skipping {} records'.format(args.skip))
 if args.inic:
     logging.info('Skipping until {}'.format(args.inic))
 if args.ini_line:
-    logging.info('Starting at {} line'.format(args.ini_line))
+    logging.info('Starting at line {}'.format(args.ini_line))
 if args.fin_line:
-    logging.info('Stopping at {} line'.format(args.fin_line))
+    logging.info('Stopping at line {}'.format(args.fin_line))
 
 logging.info('Reading input files...')
 
-in_process = False
-last_id = '-1'
-nline = 0
+in_process = not args.inic and not args.skip
+
 nids = 0
 
 for file in args.files:
-    logging.info('Reading ' + file)
-    file_stat = os.stat(file)
-    tstamp =  int(file_stat.st_ctime)
-    logging.info('File time stamp: {}'.format(tstamp))
-    stored_tstamp = db_cols['fileStamps'].find_one({'_id':file})
-    if args.tupd and stored_tstamp and (stored_tstamp['ts'] <= tstamp):
+    logging.info('Processing ' + file)
+        
+    f_mgr = FileMgr(file, args.ini_line, args.fin_line)
+
+    if args.tupd and not f_mgr.check_stamp(db_cols['fileStamps']):
         logging.info("File not new, skipping")
+        del f_mgr
         continue
-    if file.find('.gz'):
-        fh_in = gzip.open(file ,'r')
-    else:
-        fh_in = open(file ,'r')
+    
+    f_mgr.open_file()
+    
+    f_mgr.skip_lines_to_ini()
+    
     header = ''
     seq = ''
-    for line in fh_in:
-        nline += 1
-        line = line.decode('ascii').rstrip()
+    
+    for line in f_mgr:
         if not len(line):
             continue
         if line.find('>') == 0:
             nids  += 1
+
             in_process = in_process or\
-                args.inic == last_id or\
-                (args.ini_line and nline >= args.ini_line) or\
-                (args.skip and nids > args.skip)
-            if args.fin_line and in_process:
-                in_process = (nline <= args.fin_line)
+                args.inic == ut.get_id(line) or\
+                (args.skip and nids > args.skip) 
+            
             if header and in_process:
                 process_fasta(header, seq)
+            
             header = line
             seq = ''
-            print_progress('Input ids', nids, ntot, BATCH_SIZE/2)
+            ut.print_progress('Input ids', nids, ntot, BATCH_SIZE/2)
         else:
             seq += line
         
     
-    process_fasta(header, seq)
+    if header and in_process:
+        process_fasta(header, seq)
     
     headBuff.commit_any_data()
     seqBuff.commit_any_data()
     
-    db_cols['fileStamps'].update_one({'_id':file},{'$set':{'ts':tstamp}}, upsert=True)
+    db_cols['fileStamps'].update_one({'_id':file},{'$set':{'ts':f_mgr.tstamp}}, upsert=True)
+    
+    del f_mgr
+    
     
 logging.info('loadUniprot Done')
 
