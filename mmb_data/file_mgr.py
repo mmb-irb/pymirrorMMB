@@ -9,22 +9,28 @@ class FileMgr():
         self.fn = file
         file_stat = os.stat(self.fn)
         self.tstamp =  int(file_stat.st_ctime)
-        logging.info('File time stamp: {}'.format(self.tstamp))
         self.ini = ini_line
         self.fin = fin_line
         self.current_line = 0
         
-    def check_stamp(self, tupd, tstamp_col):
+    def check_new_stamp(self, tstamp_col):
         stored_tstamp = tstamp_col.find_one({'_id':self.fn})
-        if stored_tstamp and (stored_tstamp['ts'] <= self.tstamp):
-            return False
-        else:
-            return True
+        logging.info('File time stamp:   {:11.0f}'.format(self.tstamp))
+        if stored_tstamp:
+            logging.info('Stored time stamp: {:11.0f}'.format(stored_tstamp['ts']))
+            if self.tstamp <= stored_tstamp['ts']:
+                return False
+        if not stored_tstamp:
+            logging.info('Stored time stamp: None')
+        return True
     
-    def skip_lines_to(self, txt):
+    def skip_lines_to(self, txt, match=False):
         header_lines = True
         for line in self:
-            header_lines = header_lines and (line.find(txt) == -1)
+            if match:
+                header_lines = header_lines and line != txt
+            else:
+                header_lines = header_lines and (line.find(txt) == -1)
             if not header_lines:
                 break
 
