@@ -44,9 +44,9 @@ annotBuff = MongoDBBulkWrite(db_cols['Annotation'], CTS['DELETE'], BATCH_SIZE)
 
 
 if args.ini_line:
-    logging.info('Starting at {} line'.format(args.ini_line))
+    logging.info('Starting at line {}'.format(args.ini_line))
 if args.fin_line:
-    logging.info('Stopping at {} line'.format(args.fin_line))
+    logging.info('Stopping at line {}'.format(args.fin_line))
 
 logging.info('Reading input files')
 

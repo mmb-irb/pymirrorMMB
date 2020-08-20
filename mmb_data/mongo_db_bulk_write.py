@@ -2,7 +2,7 @@
 import logging
 import sys
 
-from pymongo import InsertOne, DeleteOne, UpdateOne,UpdateMany
+from pymongo import DeleteOne, UpdateOne, UpdateMany
 from pymongo.errors import BulkWriteError
 
 CTS = {
@@ -12,7 +12,7 @@ CTS = {
     'INSERT': 3
 }
 
-OP_LABELS = ['update','upsert','delete','insert']
+OP_LABELS = ['update', 'upsert', 'delete', 'insert']
 
 class MongoDBBulkWrite():
 
@@ -23,31 +23,29 @@ class MongoDBBulkWrite():
         self.length = size
         self.data = []
         self.ibuff = 0
-        self.total =  0
+        self.total = 0
         self.removed = 0
         self.upserted = 0
         self.modified = 0
         self.inserted = 0
-    
+
     def clean(self):
         self.data = []
         self.ibuff = 0
 
     def append(self, id, val, ser_id=None):
-        self.data.append(
-            {
+        self.data.append({
             'id': id,
             'val': val,
             'ser_id': ser_id
-            }
-        )
+        })
         self.ibuff += 1
 
     def full(self):
         return self.ibuff >= self.length
 
     def reset(self):
-        self.clean
+        self.clean()
         self.total = 0
 
     def commit_data(self, if_full=True, many=False):
@@ -58,12 +56,12 @@ class MongoDBBulkWrite():
                     for item in self.data:
                         buffer.append(item['val'])
                         self.collection.insert_many(buffer)
-                    log = 'Committing %7.0f ops. (%8.0f) to %15s:'.format(
+                    log = 'Committing {:7.0f} ops. ({:8.0f}) to {:15s}:'.format(
                         self.ibuff, self.total, self.collection.name
                     )
-                    log += '%7.0f inserted'.format(length(buffer))
+                    log += '{:7.0f} inserted'.format(len(buffer))
                     logging.info(log)
-                    self.inserted += length(buffer)
+                    self.inserted += len(buffer)
                 else:
                     bulk = []
                     last_id = ''
@@ -80,7 +78,7 @@ class MongoDBBulkWrite():
                         if item['ser_id']:
                             last_id = item['ser_id']
                         elif '_id' in item['id']:
-                            last_id = item['id']['_id'];
+                            last_id = item['id']['_id']
                     try:
                         hres = self.collection.bulk_write(bulk, ordered=False)
                     except BulkWriteError as bwe:
@@ -107,9 +105,9 @@ class MongoDBBulkWrite():
 
     def commit_any_data(self, many=False):
         self.commit_data(False, many)
-        
 
-    def global_stats(self): 
+
+    def global_stats(self):
         log = "{:10} ({:6}) {:8} ops, ". format(
             self.collection.name,
             OP_LABELS[self.mode],

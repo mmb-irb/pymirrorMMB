@@ -27,13 +27,14 @@ class Mongo_db():
 
         self.connected = False
 
-    def set_auth(self, user, passw, db):
+    def set_auth(self, user, passw, auth_db):
         if self.read_only:
             self.credentials['ROUser'] = user
             self.credentials['ROPwd'] = passw
         else:
             self.credentials['RWUser'] = user
             self.credentials['RWPwd'] = passw
+        self.authDB = auth_db
 
     def _set_uri(self):
         self.uri = 'mongodb://'
@@ -49,13 +50,13 @@ class Mongo_db():
                 self.uri += '{}:{}@{}/{}'.format(
                     self.credentials['RWUser'],
                     self.credentials['RWPwd'],
-                    self.host, 
+                    self.host,
                     self.authDB
                 )
         else:
             self.uri += self.host
 #        print(self.uri)
-        
+
     def connect_db(self):
         self._db_connect()
 
@@ -69,7 +70,7 @@ class Mongo_db():
 
     def get_gfs(self, col_name='fs'):
         return GridFS(self.db, col_name, disable_md5=True)
-        
+
     def _db_connect(self):
         if not self.uri:
             self._set_uri()
@@ -82,7 +83,7 @@ class Mongo_db():
             self.connected = True
         except ConnectionFailure:
             sys.exit("Error connecting DB")
-    
+
     def close(self):
         if self.connected:
             self.client.close()

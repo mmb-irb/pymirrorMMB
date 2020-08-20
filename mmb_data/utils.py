@@ -7,6 +7,5 @@ def print_progress(prefix, nids, ntot, inc):
 
 
 def get_id(fasta_header):
-    db,uniq_id,entry_name = fasta_header.split('|')
+    db, uniq_id, entry_name = fasta_header.split('|')
     return uniq_id
-    

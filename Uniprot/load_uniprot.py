@@ -183,10 +183,8 @@ for file in args.files:
     
     del f_mgr
     
-    
 logging.info('loadUniprot Done')
 
 logging.info(headBuff.global_stats())
 
 logging.info(seqBuff.global_stats())
-
