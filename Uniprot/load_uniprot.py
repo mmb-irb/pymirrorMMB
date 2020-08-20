@@ -99,7 +99,7 @@ args = cmd.parse_args()
 db_lnk = Mongo_db('localhost', 'FlexPortal', False, AUTH)
 db_cols = db_lnk.get_collections(["headers", "sequences", "sources","fileStamps"])
 
-logging.basicConfig(format='[%(asctime)s] %(levelname)s %(message)s', datefmt='%Y-%m-%d|%H:%M:%S')
+logging.basicConfig(stream=sys.stdout, format='[%(asctime)s] %(levelname)s %(message)s', datefmt='%Y-%m-%d|%H:%M:%S')
 
 headBuff = MongoDBBulkWrite(db_cols['headers'],CTS['UPSERT'], BATCH_SIZE)
 seqBuff = MongoDBBulkWrite(db_cols['sequences'], CTS['UPSERT'], BATCH_SIZE)
@@ -141,7 +141,7 @@ for file in args.files:
         
     f_mgr = FileMgr(file, args.ini_line, args.fin_line)
 
-    if args.tupd and not f_mgr.check_stamp(db_cols['fileStamps']):
+    if args.tupd and not f_mgr.check_new_stamp(db_cols['fileStamps']):
         logging.info("File not new, skipping")
         del f_mgr
         continue

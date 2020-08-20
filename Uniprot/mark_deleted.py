@@ -10,7 +10,7 @@ from mmb_data.mongo_db_bulk_write import CTS, MongoDBBulkWrite
 from mmb_data.file_mgr import FileMgr
 
 BATCH_SIZE = 100000
-AUTH = False
+AUTH = True
 
 
 cmd = argparse.ArgumentParser(
@@ -18,6 +18,7 @@ cmd = argparse.ArgumentParser(
 )
 
 cmd.add_argument('--tupd', dest='tupd', action='store_true', required=False, help='New files only')
+cmd.add_argument('--inic', dest='inic', required=False, help='Initial id to process')
 cmd.add_argument('--ini_line', dest='ini_line', type=int, default=0, required=False, help='Initial line to process')
 cmd.add_argument('--fin_line', dest='fin_line', type=int, default=0, required=False, help='Final line ot process')
 cmd.add_argument('-v', dest='verb', action='store_true', required=False, help='Additional logging')
@@ -28,7 +29,7 @@ args = cmd.parse_args()
 db_lnk = Mongo_db('localhost', 'FlexPortal', False, AUTH)
 db_cols = db_lnk.get_collections(["headers", "sequences", "Annotation", "fileStamps"])
 
-logging.basicConfig(format='[%(asctime)s] %(levelname)s %(message)s', datefmt='%Y-%m-%d|%H:%M:%S')
+logging.basicConfig(stream=sys.stdout, format='[%(asctime)s] %(levelname)s %(message)s', datefmt='%Y-%m-%d|%H:%M:%S')
 
 if args.debug:
     logging.getLogger().setLevel(10)
@@ -56,13 +57,17 @@ for file in args.files:
 
     f_mgr = FileMgr(file, args.ini_line, args.fin_line)
 
-    if args.tupd and not f_mgr.check_stamp(db_cols['fileStamps']):
+    if args.tupd and not f_mgr.check_new_stamp(db_cols['fileStamps']):
         logging.info("File not new, skipping")
         continue
     
     f_mgr.open_file()
     
-    f_mgr.skip_lines_to('_____')
+    if args.inic:
+        logging.info("Skipping until {} ".format(args.inic))
+        f_mgr.skip_lines_to(args.inic, True)
+    else:
+        f_mgr.skip_lines_to('______')
     
     f_mgr.skip_lines_to_ini()
     

@@ -28,7 +28,7 @@ args = cmd.parse_args()
 db_lnk = Mongo_db('localhost', 'FlexPortal', False, AUTH)
 db_cols = db_lnk.get_collections(["headers", "sequences", "fileStamps"])
 
-logging.basicConfig(format='[%(asctime)s] %(levelname)s %(message)s', datefmt='%Y-%m-%d|%H:%M:%S')
+logging.basicConfig(stream=sys.stdout, format='[%(asctime)s] %(levelname)s %(message)s', datefmt='%Y-%m-%d|%H:%M:%S')
 if args.debug:
     logging.getLogger().setLevel(10)
 else:
@@ -54,7 +54,7 @@ for file in args.files:
 
     f_mgr = FileMgr(file, args.ini_line, args.fin_line)
     
-    if args.tupd and not f_mgr.check_stamp(db_cols['fileStamps']):
+    if args.tupd and not f_mgr.check_new_stamp(db_cols['fileStamps']):
         logging.info("File not new, skipping")
         continue
     
@@ -89,13 +89,13 @@ for file in args.files:
             
         headBuff.commit_data_if_full()
         seqBuff.commit_data_if_full()
+        db_cols['fileStamps'].update_one({'_id':file},{'$set':{'ts':f_mgr.tstamp}}, upsert=True)
         
-    del f_mgr
-
     headBuff.commit_any_data()
     seqBuff.commit_any_data()
 
     db_cols['fileStamps'].update_one({'_id':file},{'$set':{'ts':f_mgr.tstamp}}, upsert=True)
+    del f_mgr
 
 logging.info('load Secondaries Done')
 
