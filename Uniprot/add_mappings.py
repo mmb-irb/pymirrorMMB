@@ -10,7 +10,7 @@ from mmb_data.mongo_db_bulk_write import CTS, MongoDBBulkWrite
 from mmb_data.file_mgr import FileMgr
 
 BATCH_SIZE = 100000
-AUTH = False
+AUTH = True
 
 
 cmd = argparse.ArgumentParser(
@@ -62,7 +62,7 @@ for file in args.files:
     f_mgr.skip_lines_to_ini()
     a = ''    
     for line in f_mgr:
-        ac,db,id = line.split()
+        ac,db,id = line.split(None, 2)
         if db in ('PDB', 'UniRef100', 'UniRef90', 'UniRef50', 'Ensembl', 'GI', 'RefSeq_NT'): 
             if db != 'RefSeq_NT':
                 id = re.sub('[^_]*_','',id);
