@@ -18,6 +18,7 @@ cmd = argparse.ArgumentParser(
 )
 
 cmd.add_argument('--tupd', dest='tupd', action='store_true', required=False, help='New files only')
+cmd.add_argument('--inic', dest='inic', required=False, help='Initial id to process')
 cmd.add_argument('--ini_line', dest='ini_line', type=int, default=0, required=False, help='Initial line to process')
 cmd.add_argument('--fin_line', dest='fin_line', type=int, default=0, required=False, help='Final line ot process')
 cmd.add_argument('-v', dest='verb', action='store_true', required=False, help='Additional logging')
@@ -59,6 +60,11 @@ for file in args.files:
     
     f_mgr.open_file()
     
+     
+    if args.inic:
+        logging.info("Skipping until {} ".format(args.inic))
+        f_mgr.skip_lines_to(args.inic, True)
+    
     f_mgr.skip_lines_to_ini()
     a = ''    
     for line in f_mgr:
@@ -77,7 +83,6 @@ for file in args.files:
 
     headBuff.commit_any_data();
     
-    db_cols['fileStamps'].update_one({'_id':file},{'$set':{'ts':f_mgr.tstamp}}, upsert=True)
     del f_mgr
 
 logging.info('load mappings Done')
