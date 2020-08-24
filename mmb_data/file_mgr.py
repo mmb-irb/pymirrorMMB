@@ -2,6 +2,7 @@
 import logging
 import gzip
 import os
+import re
 
 
 class FileMgr():
@@ -31,7 +32,7 @@ class FileMgr():
             if match:
                 header_lines = header_lines and line != txt
             else:
-                header_lines = header_lines and (line.find(txt) == -1)
+                header_lines = header_lines and re.search(txt, line)
             if not header_lines:
                 break
 
