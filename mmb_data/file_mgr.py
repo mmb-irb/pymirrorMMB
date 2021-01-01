@@ -2,6 +2,7 @@
 import logging
 import gzip
 import os
+import re
 
 
 class FileMgr():
@@ -31,7 +32,7 @@ class FileMgr():
             if match:
                 header_lines = header_lines and line != txt
             else:
-                header_lines = header_lines and (line.find(txt) == -1)
+                header_lines = header_lines and re.search(txt, line)
             if not header_lines:
                 break
 
@@ -40,7 +41,14 @@ class FileMgr():
             for line in self:
                 if self.current_line >= self.ini:
                     break
-
+                    
+    def skip_n_lines(self,n):
+        nlin=0
+        for line in self:
+            if nlin == n:
+                break
+            nlin += 1
+    
     def open_file(self):
         if self.fn.find('.gz') != -1:
             self.fh_in = gzip.open(self.fn, 'rt')
