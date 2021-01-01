@@ -41,7 +41,14 @@ class FileMgr():
             for line in self:
                 if self.current_line >= self.ini:
                     break
-
+                    
+    def skip_n_lines(self,n):
+        nlin=0
+        for line in self:
+            if nlin == n:
+                break
+            nlin += 1
+    
     def open_file(self):
         if self.fn.find('.gz') != -1:
             self.fh_in = gzip.open(self.fn, 'rt')
