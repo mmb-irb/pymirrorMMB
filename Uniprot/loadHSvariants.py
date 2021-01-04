@@ -87,21 +87,24 @@ for file in args.files:
         varBuff.append(
             {'_id':{'ac':data[1],'mut':data[2]}},
             {
-                '$set': {
-                    'varorig':'ensembl', 
+                '$set' : {
                     'gn': data[0],
-                    'varId': data[3],
-                    'ENSG' : data[10],
+                    'ENSG' : data[10],  
                     'cyto' : data[8],
-                    'type': data[4],
-                    'consequence': data[4],
-                    'dbId' : data[3],
-                    'phenotype' : {'desc' : data[6],'source': data[7]},
-                    'clinical': data[5],
-                    'ENST': data[11],
-                    'ENSP': data[12],
-                    'dnamut': data[9],
-                    'cyto' : data[8]
+                },
+                '$addToSet': {
+                    'variants': {
+                        'varorig':'ensembl', 
+                        'varId': data[3],
+                        'type': data[4],
+                        'consequence': data[4],
+                        'dbId' : data[3],
+                        'phenotype' : {'desc' : data[6],'source': data[7]},
+                        'clinical': data[5],
+                        'ENST': data[11],
+                        'ENSP': data[12],
+                        'dnamut': data[9],
+                    }
                 }
             }
         )
