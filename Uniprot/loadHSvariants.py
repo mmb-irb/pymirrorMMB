@@ -81,29 +81,29 @@ for file in args.files:
 ##_________       __________      _________________       ____________    ________________        _____________________   _________________       ________________________ ________________        _____________________   ____________________    _____________________   ______________________
 ##A1BG    M0R009  p.Thr2Met       rs7256067       missense variant        -       -       -       19q13.43        19:g.58864491G>A        ENSG00000121410  ENST00000600966 ENSP00000470909
         data = line.split("\t")
+        print(data)
+        if len(data) < 10:
+            continue
         varBuff.append(
-            {'_id':data[1]},
+            {'_id':{'ac':data[1],'mut':data[2]}},
             {
+                '$set' : {
+                    'gn': data[0],
+                    'ENSG' : data[10],  
+                    'cyto' : data[8],
+                },
                 '$addToSet': {
                     'variants': {
                         'varorig':'ensembl', 
-                        'gn': data[0],
                         'varId': data[3],
-                        'ENSG' : data[10],
-                        'cyto' : data[8],
-                        'vardata' : {
-                            'mut': data[2],
-                            'type': data[4],
-                            'ENSG': data[10],
-                            'consequence': data[4],
-                            'dbId' : data[3],
-                            'phenotype' : {'desc' : data[6],'source': data[7]},
-                            'clinical': data[5],
-                            'ENST': data[11],
-                            'ENSP': data[12],
-                            'dnamut': data[9],
-                            'cyto' : data[8]
-                        }
+                        'type': data[4],
+                        'consequence': data[4],
+                        'dbId' : data[3],
+                        'phenotype' : {'desc' : data[6],'source': data[7]},
+                        'clinical': data[5],
+                        'ENST': data[11],
+                        'ENSP': data[12],
+                        'dnamut': data[9],
                     }
                 }
             }
