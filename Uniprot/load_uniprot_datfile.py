@@ -16,8 +16,8 @@ from mmb_data.file_mgr import FileMgr
 import mmb_data.utils as ut
 from Bio.SeqFeature import UnknownPosition, ExactPosition
 
-BATCH_SIZE = 1000
-AUTH = False
+BATCH_SIZE = 100000
+AUTH = True
 
 cmd = argparse.ArgumentParser(
     description='Uniprot Fasta loader'
@@ -33,13 +33,13 @@ cmd.add_argument('files', nargs=argparse.REMAINDER, help="Files to process (FAST
 args = cmd.parse_args()
 
 db_lnk = Mongo_db('localhost', 'FlexPortal', False, AUTH)
-db_cols = db_lnk.get_collections(["headers2", "sequences2", "sources","annotation2", "fileStamps"])
+db_cols = db_lnk.get_collections(["headers", "sequences", "sources","annotation", "fileStamps"])
 
 logging.basicConfig(stream=sys.stdout, format='[%(asctime)s] %(levelname)s %(message)s', datefmt='%Y-%m-%d|%H:%M:%S')
 
-headBuff = MongoDBBulkWrite(db_cols['headers2'],CTS['UPSERT'], BATCH_SIZE)
-seqBuff = MongoDBBulkWrite(db_cols['sequences2'],CTS['UPSERT'], BATCH_SIZE)
-annotBuff = MongoDBBulkWrite(db_cols['annotation2'],CTS['UPSERT'], BATCH_SIZE)
+headBuff = MongoDBBulkWrite(db_cols['headers'],CTS['UPSERT'], BATCH_SIZE)
+seqBuff = MongoDBBulkWrite(db_cols['sequences'],CTS['UPSERT'], BATCH_SIZE)
+annotBuff = MongoDBBulkWrite(db_cols['annotation'],CTS['UPSERT'], BATCH_SIZE)
 
 if args.debug:
     logging.getLogger().setLevel(10)
@@ -54,7 +54,7 @@ for sc in db_cols['sources'].find():
     
 logging.info('{} sources loaded'.format(len(sources)))
 
-ntot = db_cols['headers2'].estimated_document_count()
+ntot = db_cols['headers'].estimated_document_count()
 
 logging.info('Found {} documents'.format(ntot))
 
@@ -84,7 +84,7 @@ for file in args.files:
         
     f_mgr = FileMgr(file, 0, 0)
 
-    if args.tupd and not f_mgr.check_stamp(db_cols['fileStamps']):
+    if args.tupd and not f_mgr.check_new_stamp(db_cols['fileStamps']):
         logging.info("File not new, skipping")
         del f_mgr
         continue
@@ -130,7 +130,7 @@ for file in args.files:
                 continue
             if field.find('=') == -1:
                 continue
-            lb, val = field.split('=')
+            lb, val = field.split('=', 1)
             if lb == 'Name':
                 header_data['gn'] = val
             else:
@@ -199,6 +199,7 @@ for file in args.files:
     headBuff.commit_any_data()
     seqBuff.commit_any_data()
     annotBuff.commit_any_data()
+    db_cols['fileStamps'].update_one({'_id':file},{'$set':{'ts':f_mgr.tstamp}}, upsert=True)
     
 logging.info('loadUniprotFull Done')
 

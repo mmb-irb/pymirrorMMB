@@ -11,8 +11,8 @@ from mmb_data.mongo_db_bulk_write import CTS, MongoDBBulkWrite
 from mmb_data.file_mgr import FileMgr
 import mmb_data.utils as ut
 
-BATCH_SIZE = 10000
-AUTH = False
+BATCH_SIZE = 50000
+AUTH = True
 
 cmd = argparse.ArgumentParser(
     description='Uniprot Variants loader'
@@ -81,7 +81,7 @@ for file in args.files:
 ##_________       __________      _________________       ____________    ________________        _____________________   _________________       ________________________ ________________        _____________________   ____________________    _____________________   ______________________
 ##A1BG    M0R009  p.Thr2Met       rs7256067       missense variant        -       -       -       19q13.43        19:g.58864491G>A        ENSG00000121410  ENST00000600966 ENSP00000470909
         data = line.split("\t")
-        print(data)
+#        print(data)
         if len(data) < 10:
             continue
         varBuff.append(

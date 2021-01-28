@@ -12,7 +12,7 @@ from mmb_data.file_mgr import FileMgr
 import mmb_data.utils as ut
 
 BATCH_SIZE = 10000
-AUTH = False
+AUTH = True
 
 cmd = argparse.ArgumentParser(
     description='Uniprot Variants loader'
