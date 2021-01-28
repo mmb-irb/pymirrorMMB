@@ -7,7 +7,7 @@ import re
 
 class FileMgr():
     """ Utility class to manage text files to be read sequentially """
-    def __init__(self, file, ini_line, fin_line):
+    def __init__(self, file, ini_line=0, fin_line=0):
         self.fn = file
         file_stat = os.stat(self.fn)
         self.tstamp = int(file_stat.st_ctime)
