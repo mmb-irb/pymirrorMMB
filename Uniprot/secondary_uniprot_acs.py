@@ -67,7 +67,6 @@ for file in args.files:
     for line in f_mgr:
         if line.find('_____') != -1:
             continue
-
         sec_ac, ac_num = re.split('\W+', line)
         
         headBuff.append(
