@@ -50,10 +50,14 @@ class FileMgr():
             nlin += 1
     
     def open_file(self):
-        if self.fn.find('.gz') != -1:
-            self.fh_in = gzip.open(self.fn, 'rt')
-        else:
-            self.fh_in = open(self.fn, 'r')
+        try:
+            if self.fn.find('.gz') != -1:
+                self.fh_in = gzip.open(self.fn, 'rt')
+            else:
+                self.fh_in = open(self.fn, 'r') 
+        except IOError as e:
+            sys.exit(e.message)
+        
 
     def close_file(self):
         self.fh_in.close()
