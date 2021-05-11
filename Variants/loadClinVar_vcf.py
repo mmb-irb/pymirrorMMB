@@ -1,4 +1,4 @@
-""" Import ClinVar variants"""
+""" Import ClinVar variants from VCF"""
 
 import argparse
 import logging
@@ -6,6 +6,7 @@ import os
 import gzip
 import sys
 import re
+import vcf
 
 from mmb_data.mongo_db_connect import Mongo_db
 from mmb_data.mongo_db_bulk_write import CTS, MongoDBBulkWrite
@@ -26,11 +27,10 @@ cmd.add_argument('files', nargs=argparse.REMAINDER, help="Files to process")
 args = cmd.parse_args()
 
 db_lnk = Mongo_db('mdb-login.bsc.es', 'FlexPortal', False, AUTH)
-db_cols = db_lnk.get_collections(["variants", "variantsClinVar", "fileStamps"])
+db_cols = db_lnk.get_collections(["variantsClinVar", "fileStamps"])
 
 logging.basicConfig(stream=sys.stdout, format='[%(asctime)s] %(levelname)s %(message)s', datefmt='%Y-%m-%d|%H:%M:%S')
 
-varBuff = MongoDBBulkWrite(db_cols['variants'],CTS['UPSERT'], BATCH_SIZE)
 varBuff = MongoDBBulkWrite(db_cols['variantsClinVar'],CTS['UPSERT'], BATCH_SIZE)
 
 if args.debug:
@@ -50,62 +50,24 @@ for file in args.files:
         del f_mgr
         continue
     
-    f_mgr.open_file()
-    
-    ids = set()
-    
-    for line in f_mgr:
-        if line[0] == '#':
-            continue
-#Uploaded_variation     Location        Allele  Gene    Feature Feature_type    Consequence     cDNA_position   CDS_position    Protein_position        Amino_acids     Codons  Existing_variation       Extra                 
-        data = line.split("\t")
-        extra = {}
-        for pair in data[13].split(';'):
-            k, v = pair.split('=')
-            extra[k] = v
-
-        for mth in ('SIFT','PolyPhen'):
-            if mth in extra:
-                m = re.match('([^\(]*)\(([^\)]*)\)', extra[mth])
-                extra[mth] = {'prediction': m.group(1), 'score': m.group(2)}
-        if 'DOMAINS' in extra:
-            doms = []
-            for item in extra['DOMAINS'].split(','):
-                ns, id = item.split(':',1)
-                doms.append({ns : id})
-            extra['DOMAINS'] = doms
-        
-        data[6] = data[6].split(',')
-        
-        ids.add(data[0])
-        
+    vcf_reader = vcf.Reader(open(file,'r'))
+    for record in vcf_reader:
         obj = {
-            '_id':data[0],
-            'location': data[1],
-            'allele': data[2],
-            'gene': data[3]
-        }
-        feature = {
-            'feature': data[4],
-            'feature_type': data[5],
-            'consequence': data[6],
-            'cDNA_pos': data[7],
-            'CDS_pos': data[8],
-            'Prot_pos': data[9],
-            'amino_acids': data[10],
-            'codons': data[11],
-            'existing_vars': data[12].split(','),
-            'extra': extra
+            '_id':record.ID,
+            'chrom': record.CHROM,
+            'ref': record.REF,
+            'alt': list(map(str, record.ALT)),
+            'info': record.INFO
+            
         }
         varBuff.append(
             {'_id': obj['_id']},
             {
                 '$set': obj, 
-                '$addToSet': {'features':feature}
             }
         )
       
-        logging.debug("{} {} {}".format(f_mgr.current_line, data[1], data[2]))
+        #logging.debug("{} {} {}".format(f_mgr.current_line, record.ID, data[2]))
         varBuff.commit_data_if_full(True)
 
     varBuff.commit_any_data(True)
