@@ -29,10 +29,11 @@ class FileMgr():
     def skip_lines_to(self, txt, match=False):
         header_lines = True
         for line in self:
+        #    print(line)
             if match:
                 header_lines = header_lines and line != txt
             else:
-                header_lines = header_lines and re.search(txt, line)
+                header_lines = header_lines and not re.search(txt, line)
             if not header_lines:
                 break
 
