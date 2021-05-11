@@ -67,7 +67,7 @@ for file in args.files:
         logging.info("Skipping until {} ".format(args.inic))
         f_mgr.skip_lines_to(args.inic, True)
     else:
-        f_mgr.skip_lines_to('_________ __________ ___________ ______________ _____________ ______________ _____________________', True)
+        f_mgr.skip_lines_to('_________ __________ ___________ ______________ ________ ______________ _____________________', True)
     f_mgr.skip_lines_to_ini()
     
     for line in f_mgr:
