@@ -8,6 +8,7 @@
 import argparse
 import logging
 import os
+import re
 import gzip
 import sys
 
@@ -20,13 +21,13 @@ BATCH_SIZE = 100000
 AUTH = True
 
 def procesa(data_obj, cols):
-    $cols['enzyme'].update_one (
+    cols['enzyme'].update_one (
 	    {'_id': data_obj['_id']},
-        {'$set' : data_obj },
-	    {'upsert' : 1}
+            {'$set' : data_obj },
+            upsert=True
     )
     for acc in data_obj['uniprotIds']:
-        $cols['headers'].update_one (
+        cols['headers'].update_one (
             {'_id' : acc},
             {'$addToSet' : 
                 {
@@ -34,8 +35,6 @@ def procesa(data_obj, cols):
                 }
             }
         )
-    }
-}
 
 
 cmd = argparse.ArgumentParser(
@@ -63,12 +62,12 @@ else:
 logging.info('Reading sources...')
 
 data_obj = {}
+nupd = 0
 
 for file in args.files:
     logging.info('Processing ' + file)
 
-
-    f_mgr = FileMgr(file, args.ini_line, args.fin_line)
+    f_mgr = FileMgr(file, 0,0)
 
     if args.tupd and not f_mgr.check_new_stamp(db_cols['fileStamps']):
         logging.info("File not new, skipping")
@@ -81,24 +80,29 @@ for file in args.files:
         if line in ('//', 'CC'):
             continue
         (lb, data_str) = line.split(' ',1)
-        if (lb == 'CC') and '_id' not in dataObj:
+        if (lb == 'CC') and '_id' not in data_obj:
             continue
         data_str = data_str.strip()
         if lb == 'ID':
             if '_id' in data_obj:
                 procesa(data_obj, db_cols);
-                if verb:
-                    logging.info(ninp, data_obj['_id'])
-            }
+                nupd += 1
+                if args.verb:
+                    logging.info(data_obj['_id'])
             data_obj = {
                 '_id' : data_str,
-                'alt' : [],
+                'altNames' : [],
                 'uniprotIds' : [],
-                'stamp' : f_mgr.tstamp
+                'stamp' : f_mgr.tstamp,
+                'activity' : '',
+                'comment' : '',
+                'prositeDocs': []
             }
         elif lb == 'DR':
             dbdata = re.split('; *', data_str)
             for f in dbdata:
+                if not f:
+                    continue
                 a,b = re.split(', *', f)
                 data_obj['uniprotIds'].append(a)
         elif lb == 'DE':
@@ -112,11 +116,12 @@ for file in args.files:
         elif lb == 'CC':
             data_obj['comment'] += data_str + " ";
         elif lb == 'PR':
-            a, b  = re.split('; *', data_str)
+            a, b  = re.split('; *', data_str, 1)
             data_obj['prositeDocs'].append(b)
 
     if data_obj:
         procesa(data_obj, db_cols)
-    
-logging.info("Done. $nupd records")
+        nupd += 1
+    db_cols['fileStamps'].update_one({'_id':file},{'$set':{'ts':f_mgr.tstamp}}, upsert=True)    
+logging.info("Done. {} records".format(nupd))
 
