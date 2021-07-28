@@ -12,8 +12,8 @@ from mmb_data.mongo_db_bulk_write import CTS, MongoDBBulkWrite
 from mmb_data.file_mgr import FileMgr
 import mmb_data.utils as ut
 
-BATCH_SIZE = 10000
-AUTH = False
+BATCH_SIZE = 50000
+AUTH = True
 
 cmd = argparse.ArgumentParser(
     description='ClinVar Variants loader'
@@ -25,7 +25,7 @@ cmd.add_argument('--debug', dest='debug', action='store_true', required=False, h
 cmd.add_argument('files', nargs=argparse.REMAINDER, help="Files to process")
 args = cmd.parse_args()
 
-db_lnk = Mongo_db('localhost', 'FlexPortal', False, AUTH)
+db_lnk = Mongo_db('mdb-login.bsc.es', 'FlexPortal', False, AUTH)
 db_cols = db_lnk.get_collections(["variants", "variantsClinVar", "fileStamps"])
 
 logging.basicConfig(stream=sys.stdout, format='[%(asctime)s] %(levelname)s %(message)s', datefmt='%Y-%m-%d|%H:%M:%S')
@@ -60,9 +60,10 @@ for file in args.files:
 #Uploaded_variation     Location        Allele  Gene    Feature Feature_type    Consequence     cDNA_position   CDS_position    Protein_position        Amino_acids     Codons  Existing_variation       Extra                 
         data = line.split("\t")
         extra = {}
-        for pair in data[13].split(';'):
+        for pair in data.pop().split(';'):
             k, v = pair.split('=')
             extra[k] = v
+        data = data +  [''] * 10
 
         for mth in ('SIFT','PolyPhen'):
             if mth in extra:
