@@ -14,7 +14,7 @@ from mmb_data.file_mgr import FileMgr
 import mmb_data.utils as ut
 
 BATCH_SIZE = 10000
-AUTH = True
+AUTH = False
 
 cmd = argparse.ArgumentParser(
     description='ClinVar Variants loader'
@@ -23,12 +23,12 @@ cmd = argparse.ArgumentParser(
 cmd.add_argument('--tupd', dest='tupd', action='store_true', required=False, help='New files only')
 cmd.add_argument('-v', dest='verb', action='store_true', required=False, help='Additional logging')
 cmd.add_argument('--debug', dest='debug', action='store_true', required=False, help='Debug logging')
-cmd.add_argument('collection', help="Collection to add to")
+cmd.add_argument('--col', dest='collection' help="Collection to add to")
 cmd.add_argument('files', nargs=argparse.REMAINDER, help="Files to process")
 
 args = cmd.parse_args()
 
-db_lnk = Mongo_db('mdb-login.bsc.es', 'FlexPortal', False, AUTH)
+db_lnk = Mongo_db('localhost', 'FlexPortal', False, AUTH)
 db_cols = db_lnk.get_collections([args.collection, "fileStamps"])
 
 logging.basicConfig(stream=sys.stdout, format='[%(asctime)s] %(levelname)s %(message)s', datefmt='%Y-%m-%d|%H:%M:%S')
@@ -55,8 +55,6 @@ for file in args.files:
     vcf_reader = vcf.Reader(f_mgr.fh_in)
     for record in vcf_reader:
         n += 1
-        if n < 30705046:
-            continue
         obj = {
             '_id':record.ID,
             'chrom': record.CHROM,
